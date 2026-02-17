@@ -50,8 +50,95 @@ let quoteAutocompleteTimer = null;
 let quoteAutocompleteResults = [];
 let quoteActiveSuggestionIndex = -1;
 let quoteAutocompleteAbortController = null;
+const quoteAutocompleteCache = new Map();
 const quoteAutocompleteMinChars = 2;
-const quoteAutocompleteDebounceMs = 90;
+const quoteAutocompleteDebounceMs = 220;
+const quoteRemoteMinChars = 4;
+let quoteAutocompleteRequestToken = 0;
+let southlandAddressHints = {
+  localities: [],
+  streetHints: [],
+};
+
+async function loadSouthlandAddressHints() {
+  try {
+    const response = await fetch("assets/data/southland-address-hints.json");
+    if (!response.ok) return;
+
+    const data = await response.json();
+    if (!data || typeof data !== "object") return;
+
+    southlandAddressHints = {
+      localities: Array.isArray(data.localities) ? data.localities : [],
+      streetHints: Array.isArray(data.streetHints) ? data.streetHints : [],
+    };
+  } catch {
+    southlandAddressHints = {
+      localities: [],
+      streetHints: [],
+    };
+  }
+}
+
+loadSouthlandAddressHints();
+
+function normalizeText(value) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim();
+}
+
+function getLocalAddressSuggestions(queryText) {
+  const normalizedQuery = normalizeText(queryText);
+  if (normalizedQuery.length < quoteAutocompleteMinChars) return [];
+
+  const localityMatches = southlandAddressHints.localities
+    .filter(({ suburb, town }) => {
+      const haystack = normalizeText(`${suburb} ${town}`);
+      return haystack.includes(normalizedQuery);
+    })
+    .map(({ suburb, town }) => ({
+      display_name: `${suburb}, ${town}, Southland, New Zealand`,
+      address: {
+        suburb,
+        town,
+        city: town,
+        state: "Southland",
+      },
+      source: "local",
+    }));
+
+  const streetMatches = southlandAddressHints.streetHints
+    .filter(({ street, suburb, town }) => {
+      const haystack = normalizeText(`${street} ${suburb} ${town}`);
+      return haystack.includes(normalizedQuery);
+    })
+    .map(({ street, suburb, town }) => ({
+      display_name: `${street}, ${suburb}, ${town}, Southland, New Zealand`,
+      address: {
+        road: street,
+        suburb,
+        town,
+        city: town,
+        state: "Southland",
+      },
+      source: "local",
+    }));
+
+  const combined = [...streetMatches, ...localityMatches];
+  const deduped = [];
+
+  combined.forEach((item) => {
+    const exists = deduped.some((existingItem) => normalizeText(existingItem.display_name) === normalizeText(item.display_name));
+    if (!exists) {
+      deduped.push(item);
+    }
+  });
+
+  return deduped.slice(0, 8);
+}
 
 function closeAddressSuggestions() {
   if (!quoteSuggestions) return;
@@ -139,8 +226,13 @@ function selectActiveSuggestion() {
 }
 
 async function fetchAddressSuggestions(queryText) {
+  const cachedResults = quoteAutocompleteCache.get(queryText);
+  if (cachedResults) {
+    return cachedResults;
+  }
+
   const query = encodeURIComponent(`${queryText}, Southland, New Zealand`);
-  const endpoint = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=nz&q=${query}`;
+  const endpoint = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&dedupe=1&accept-language=en-NZ&countrycodes=nz&viewbox=166.2,-45.2,169.9,-47.4&bounded=1&q=${query}`;
 
   try {
     if (quoteAutocompleteAbortController) {
@@ -156,7 +248,16 @@ async function fetchAddressSuggestions(queryText) {
     });
     if (!response.ok) return [];
     const results = await response.json();
-    return Array.isArray(results) ? results : [];
+    if (!Array.isArray(results)) return [];
+
+    const filteredResults = results.filter((result) => {
+      const address = result.address || {};
+      const stateText = normalizeText(address.state || address.region || "");
+      return !stateText || stateText.includes("southland");
+    });
+
+    quoteAutocompleteCache.set(queryText, filteredResults);
+    return filteredResults;
   } catch {
     return [];
   } finally {
@@ -180,9 +281,45 @@ if (quoteAddress && quoteSuburb && quoteTown && quoteSuggestions) {
       return;
     }
 
+    const localSuggestions = getLocalAddressSuggestions(searchText);
+    if (localSuggestions.length > 0) {
+      renderAddressSuggestions(localSuggestions);
+    } else {
+      closeAddressSuggestions();
+    }
+
+    if (searchText.length < quoteRemoteMinChars) {
+      return;
+    }
+
+    const requestToken = ++quoteAutocompleteRequestToken;
+    const typedAtRequest = searchText;
+
     quoteAutocompleteTimer = setTimeout(async () => {
-      const results = await fetchAddressSuggestions(searchText);
-      renderAddressSuggestions(results);
+      const remoteResults = await fetchAddressSuggestions(searchText);
+      if (requestToken !== quoteAutocompleteRequestToken) return;
+      if (quoteAddress.value.trim() !== typedAtRequest) return;
+
+      const latestLocalSuggestions = getLocalAddressSuggestions(typedAtRequest);
+      const merged = [...localSuggestions];
+
+      remoteResults.forEach((remoteItem) => {
+        const remoteName = normalizeText(remoteItem.display_name);
+        const exists = merged.some((item) => normalizeText(item.display_name) === remoteName);
+        if (!exists) {
+          merged.push(remoteItem);
+        }
+      });
+
+      latestLocalSuggestions.forEach((localItem) => {
+        const localName = normalizeText(localItem.display_name);
+        const exists = merged.some((item) => normalizeText(item.display_name) === localName);
+        if (!exists) {
+          merged.unshift(localItem);
+        }
+      });
+
+      renderAddressSuggestions(merged.slice(0, 6));
     }, quoteAutocompleteDebounceMs);
   });
 

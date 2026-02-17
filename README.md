@@ -75,6 +75,12 @@ Homepage map highlight reads from:
 
 Replace this file with an official Southland boundary GeoJSON anytime; no JavaScript changes needed.
 
+Quote address autocomplete local hints are loaded from:
+
+- `assets/data/southland-address-hints.json`
+
+You can expand this file with more Southland suburbs/streets without editing `assets/js/site.js`.
+
 ## One-Click VPS Deploy (Ubuntu)
 
 This script installs all required server dependencies and deploys the app with PM2 + Nginx + SSL.
