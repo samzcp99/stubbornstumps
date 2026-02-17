@@ -29,8 +29,11 @@ async function handleQuoteSubmit(event) {
     if (!response.ok) throw new Error("Submit failed");
 
     form.reset();
-    status.textContent = "Thanks! Your quote request was sent successfully.";
+    status.textContent = "Thanks! Your quote request was sent successfully. Redirecting...";
     status.style.color = "#1F7A63";
+    window.setTimeout(() => {
+      window.location.href = "thank-you.html";
+    }, 900);
     return true;
   } catch (error) {
     status.textContent = "Unable to submit right now. Please try again or call us.";
@@ -54,11 +57,18 @@ const quoteAutocompleteCache = new Map();
 const quoteAutocompleteMinChars = 2;
 const quoteAutocompleteDebounceMs = 220;
 const quoteRemoteMinChars = 4;
+const quoteMaxPhotoCount = 8;
+const quoteMaxPhotoBytesPerFile = 10 * 1024 * 1024;
+const quoteMaxPhotoBytesTotal = 30 * 1024 * 1024;
 let quoteAutocompleteRequestToken = 0;
 let southlandAddressHints = {
   localities: [],
   streetHints: [],
 };
+
+function toMegabytes(bytes) {
+  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10}MB`;
+}
 
 async function loadSouthlandAddressHints() {
   try {
@@ -363,6 +373,7 @@ if (quoteAddress && quoteSuburb && quoteTown && quoteSuggestions) {
 if (quoteForm) {
   quoteForm.addEventListener("submit", async (event) => {
     const status = document.getElementById("quote-status");
+    const photoInput = quoteForm.querySelector('input[name="photos"]');
 
     if (quoteSuburb && quoteTown && (!quoteSuburb.value || !quoteTown.value)) {
       event.preventDefault();
@@ -371,6 +382,39 @@ if (quoteForm) {
         status.style.color = "#F97316";
       }
       return;
+    }
+
+    if (photoInput && photoInput.files && photoInput.files.length > 0) {
+      const selectedFiles = Array.from(photoInput.files);
+
+      if (selectedFiles.length > quoteMaxPhotoCount) {
+        event.preventDefault();
+        if (status) {
+          status.textContent = `Please upload up to ${quoteMaxPhotoCount} photos.`;
+          status.style.color = "#F97316";
+        }
+        return;
+      }
+
+      const oversizedFile = selectedFiles.find((file) => file.size > quoteMaxPhotoBytesPerFile);
+      if (oversizedFile) {
+        event.preventDefault();
+        if (status) {
+          status.textContent = `Each photo must be under ${toMegabytes(quoteMaxPhotoBytesPerFile)}.`;
+          status.style.color = "#F97316";
+        }
+        return;
+      }
+
+      const totalSize = selectedFiles.reduce((accumulator, file) => accumulator + file.size, 0);
+      if (totalSize > quoteMaxPhotoBytesTotal) {
+        event.preventDefault();
+        if (status) {
+          status.textContent = `Total upload size must be under ${toMegabytes(quoteMaxPhotoBytesTotal)}.`;
+          status.style.color = "#F97316";
+        }
+        return;
+      }
     }
 
     const isSuccess = await handleQuoteSubmit(event);

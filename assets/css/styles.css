@@ -157,6 +157,17 @@ body {
   color: #fff;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.btn:focus-visible,
+.menu-toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .hero, .card, .panel {
   background: #fff;
   border: 1px solid var(--border);
@@ -309,6 +320,10 @@ small, .muted {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
+}
+
+.site-footer .footer-links a {
+  white-space: nowrap;
 }
 
 .footer-bottom {
