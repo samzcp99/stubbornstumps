@@ -20,7 +20,10 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="logo" href="./"><img src="assets/images/logo.png" alt="Stubborn Stumps logo" /></a>
-      <nav class="nav">
+      <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav" id="site-nav">
         <a href="./">Home</a><a href="services.html">Services</a><a href="gallery.html">Gallery</a><a href="quote.html">Quote</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a>
       </nav>
       <a href="tel:+64000000000" class="btn btn-accent">Call Now</a>
@@ -29,21 +32,36 @@
 
   <main class="container">
     <section class="hero">
-      <h1>Stubborn Stumps</h1>
-      <p>Professional stump grinding service in Invercargill & Southland.</p>
+      <h1>Southland stump grinding done properly</h1>
+      <p>Safe, tidy, and reliable stump grinding and tree services across Invercargill and wider Southland.</p>
       <p>
-        <a class="btn btn-primary" href="quote.html">Get Free Quote</a>
+        <a class="btn btn-primary" href="quote.html">Get a Free Southland Quote</a>
         <a class="btn btn-accent" href="tel:+64000000000">Call Now</a>
       </p>
     </section>
 
     <section class="section">
+      <h2>Why locals choose Stubborn Stumps</h2>
+      <div class="grid grid-3">
+        <article class="card"><h3>Local and reliable</h3><p>Southland-based team with clear communication from first call to final cleanup.</p></article>
+        <article class="card"><h3>Safety first</h3><p>Work is planned around access, nearby structures, and safe job-site practices.</p></article>
+        <article class="card"><h3>Tidy finish</h3><p>We can remove green waste or leave mulch on-site by request.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
       <h2>Our Services</h2>
       <div class="grid grid-3">
-        <article class="card"><h3>Residential Stump Grinding</h3><p>Safe and clean stump removal for yards, gardens, and driveways.</p></article>
-        <article class="card"><h3>Commercial Site Clearing</h3><p>Efficient stump grinding for builders, landscapers, and property managers.</p></article>
-        <article class="card"><h3>Root & Surface Cleanup</h3><p>Optional cleanup to leave your site tidy and ready for the next step.</p></article>
+        <article class="card"><h3>Stump Grinding</h3><p>Grind stumps below ground level so your area is ready for replanting, paving, or lawn.</p></article>
+        <article class="card"><h3>Stump Removal</h3><p>Remove stubborn stumps and surface roots where full extraction is needed.</p></article>
+        <article class="card"><h3>Tree & Site Work</h3><p>Support services for tree removal, cleanup, and clearing for residential and rural properties.</p></article>
       </div>
+    </section>
+
+    <section class="section panel" style="padding:20px;">
+      <h2>Service areas</h2>
+      <p>Stubborn Stumps provides stump grinding and tree services across Invercargill and the wider Southland region, including Winton, Gore, Riverton, and surrounding rural areas.</p>
+      <p><a class="btn btn-primary" href="quote.html">Book a Site Visit</a></p>
     </section>
 
     <section class="section gallery">
@@ -58,14 +76,18 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div><strong>Service Area</strong><p>Invercargill & Southland, New Zealand</p></div>
-      <div><strong>Contact</strong><p>Phone and email details available on request.</p></div>
+      <div><strong>Stubborn Stumps</strong><p>Local stump grinding and tree services across Invercargill and wider Southland.</p></div>
+      <div><strong>Quick Links</strong><p class="footer-links"><a href="./">Home</a><a href="services.html">Services</a><a href="gallery.html">Gallery</a><a href="quote.html">Quote</a><a href="contact.html">Contact</a></p></div>
+      <div><strong>Service Areas</strong><p>Invercargill, Winton, Gore, Riverton and surrounding Southland rural areas.</p></div>
+      <div><strong>Contact</strong><p><a href="tel:+64000000000">+64 000 000 000</a><br /><a href="quote.html">Get a free quote online</a></p></div>
     </div>
+    <div class="container footer-bottom">© Stubborn Stumps. All rights reserved.</div>
   </footer>
 
   <div class="mobile-cta">
     <a class="btn btn-primary" href="quote.html">Get Free Quote</a>
     <a class="btn btn-accent" href="tel:+64000000000">Call Now</a>
   </div>
+  <script src="assets/js/site.js"></script>
 </body>
 </html>

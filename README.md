@@ -67,6 +67,14 @@ bash scripts/sync-site.sh --repo https://github.com/samzcp99/stubbornstumps.git 
 
 `--install-deps` currently supports Debian/Ubuntu servers and installs missing `git`, `curl`, and `rsync` (does not install `nginx`).
 
+## Southland Map Boundary Data
+
+Homepage map highlight reads from:
+
+- `assets/data/southland.geojson`
+
+Replace this file with an official Southland boundary GeoJSON anytime; no JavaScript changes needed.
+
 ## One-Click VPS Deploy (Ubuntu)
 
 This script installs all required server dependencies and deploys the app with PM2 + Nginx + SSL.
