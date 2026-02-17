@@ -25,16 +25,18 @@ async function handleQuoteSubmit(event) {
     });
 
     let responseBody = null;
+    let responseText = "";
     try {
       responseBody = await response.json();
     } catch {
-      responseBody = null;
+      responseText = await response.text().catch(() => "");
     }
 
     return {
       ok: response.ok && (!responseBody || responseBody.ok !== false),
       message: responseBody && typeof responseBody.message === "string" ? responseBody.message : "",
       status: response.status,
+      textPreview: responseText ? responseText.slice(0, 120) : "",
     };
   };
 
@@ -44,7 +46,27 @@ async function handleQuoteSubmit(event) {
       submitResult = await submitToEndpoint(FORMSPREE_ENDPOINT);
     }
     if (!submitResult.ok) {
-      throw new Error(submitResult.message || "Submit failed");
+      if (submitResult.message) {
+        throw new Error(submitResult.message);
+      }
+
+      if (submitResult.status === 404) {
+        throw new Error("Quote API not found (404). Please check server path /api/quote.php and Nginx config.");
+      }
+
+      if (submitResult.status === 413) {
+        throw new Error("Upload is too large for the server. Reduce photo size/count and try again.");
+      }
+
+      if (submitResult.status >= 500) {
+        throw new Error("Server error while processing quote. Please check PHP-FPM, SQLite extension, and storage permissions.");
+      }
+
+      if (submitResult.textPreview.includes("<html") || submitResult.textPreview.includes("<!doctype")) {
+        throw new Error("Server returned an HTML error page. Please verify Nginx PHP routing for /api/quote.php.");
+      }
+
+      throw new Error("Submit failed");
     }
 
     form.reset();
