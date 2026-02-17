@@ -28,8 +28,34 @@ const localBusinessSchema = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://stubbornstumps.co.nz"),
   title: "Stubborn Stumps | Stump Grinding Invercargill & Southland",
   description: "Professional stump grinding service. Fast, reliable, affordable. Free quotes.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Stubborn Stumps | Stump Grinding Invercargill & Southland",
+    description: "Professional stump grinding service. Fast, reliable, affordable. Free quotes.",
+    url: "https://stubbornstumps.co.nz",
+    siteName: "Stubborn Stumps",
+    locale: "en_NZ",
+    type: "website",
+    images: [
+      {
+        url: "/logo-512.png",
+        width: 512,
+        height: 512,
+        alt: "Stubborn Stumps logo",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Stubborn Stumps | Stump Grinding Invercargill & Southland",
+    description: "Professional stump grinding service. Fast, reliable, affordable. Free quotes.",
+    images: ["/logo-512.png"],
+  },
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
