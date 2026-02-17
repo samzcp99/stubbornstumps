@@ -42,6 +42,38 @@ sudo chown -R www-data:www-data /var/www/stubbornstumps/storage
 sudo chmod -R 775 /var/www/stubbornstumps/storage
 ```
 
+### Email Notifications (Optional but Recommended)
+
+The API can send email after successful quote submission via PHP `mail()`.
+
+1) Create a local server-only config file:
+
+```bash
+cp /var/www/stubbornstumps/api/config.example.php /var/www/stubbornstumps/api/config.local.php
+```
+
+2) Edit `api/config.local.php` and set:
+
+- `enabled` => `true`
+- `to` => your inbox
+- `from` => a valid sender address for your domain
+- `customerConfirmation` => `true` or `false`
+
+3) Install a sendmail-compatible relay (example using msmtp):
+
+```bash
+sudo apt install -y msmtp msmtp-mta mailutils
+```
+
+4) Configure `/etc/msmtprc` with your SMTP provider credentials, then:
+
+```bash
+sudo chmod 600 /etc/msmtprc
+sudo systemctl restart php8.4-fpm
+```
+
+After this, each new quote writes to SQLite and sends a notification email.
+
 Optional fallback: you can still set a Formspree endpoint in `assets/js/site.js` as backup.
 
 ## Local Preview

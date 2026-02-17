@@ -4,11 +4,51 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
+$config = [
+    'email' => [
+        'enabled' => false,
+        'to' => '',
+        'from' => 'no-reply@stubbornstumps.co.nz',
+        'customerConfirmation' => false,
+    ],
+];
+
+$localConfigPath = __DIR__ . '/config.local.php';
+if (is_file($localConfigPath)) {
+    $loadedConfig = require $localConfigPath;
+    if (is_array($loadedConfig)) {
+        $config = array_replace_recursive($config, $loadedConfig);
+    }
+}
+
 function json_response(int $statusCode, array $payload): void
 {
     http_response_code($statusCode);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
+}
+
+function send_mail_if_enabled(array $emailConfig, string $subject, string $body, ?string $replyTo = null): void
+{
+    $enabled = (bool) ($emailConfig['enabled'] ?? false);
+    $to = trim((string) ($emailConfig['to'] ?? ''));
+    $from = trim((string) ($emailConfig['from'] ?? ''));
+
+    if (!$enabled || $to === '' || $from === '') {
+        return;
+    }
+
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: Stubborn Stumps <' . $from . '>',
+    ];
+
+    if ($replyTo !== null && $replyTo !== '') {
+        $headers[] = 'Reply-To: ' . $replyTo;
+    }
+
+    @mail($to, $subject, $body, implode("\r\n", $headers));
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -248,6 +288,40 @@ try {
 }
 
 finfo_close($finfo);
+
+$emailConfig = is_array($config['email'] ?? null) ? $config['email'] : [];
+$summary = "New quote request received\n\n"
+    . "Name: {$name}\n"
+    . "Phone: {$phone}\n"
+    . "Email: {$email}\n"
+    . "Region: {$region}\n"
+    . "Address: {$address}\n"
+    . "Suburb: {$suburb}\n"
+    . "Town: {$town}\n"
+    . "Description:\n{$description}\n\n"
+    . "Quote ID: {$quoteId}\n"
+    . "Photo count: " . count($photoFiles) . "\n";
+
+send_mail_if_enabled(
+    $emailConfig,
+    "[Stubborn Stumps] New quote #{$quoteId}",
+    $summary,
+    $email
+);
+
+$sendCustomerConfirmation = (bool) ($emailConfig['customerConfirmation'] ?? false);
+if ($sendCustomerConfirmation && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $customerBody = "Hi {$name},\n\n"
+        . "Thanks for your quote request. We have received your details and will get back to you shortly.\n\n"
+        . "- Stubborn Stumps";
+
+    @mail(
+        $email,
+        'We received your quote request - Stubborn Stumps',
+        $customerBody,
+        "MIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nFrom: Stubborn Stumps <" . ($emailConfig['from'] ?? 'no-reply@stubbornstumps.co.nz') . ">"
+    );
+}
 
 json_response(200, [
     'ok' => true,

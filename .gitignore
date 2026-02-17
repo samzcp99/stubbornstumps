@@ -10,3 +10,4 @@ pnpm-debug.log*
 storage/*.sqlite
 storage/uploads/*
 !storage/uploads/.gitkeep
+api/config.local.php
