@@ -7,15 +7,42 @@ Static HTML/CSS/JS website for **Stubborn Stumps** (Invercargill, Southland, New
 - HTML pages
 - `assets/css/styles.css`
 - `assets/js/site.js`
-- Formspree endpoint for quote form submissions
+- Local PHP API (`api/quote.php`) + SQLite for quote submissions
 
-## Configure Form Submission
+## Configure Local Form Backend (No Formspree Quota)
 
-Set your real Formspree endpoint in `assets/js/site.js`:
+The quote form now submits to `api/quote.php` on your own server.
 
-```js
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/your-form-id";
+Server requirements (Debian/Ubuntu):
+
+```bash
+sudo apt update
+sudo apt install -y php-fpm php-sqlite3
 ```
+
+Nginx must route PHP requests to PHP-FPM (example snippet):
+
+```nginx
+location ~ \.php$ {
+	include snippets/fastcgi-php.conf;
+	fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+}
+```
+
+After changing Nginx config:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Ensure writable storage directory for database and uploads:
+
+```bash
+sudo chown -R www-data:www-data /var/www/stubbornstumps/storage
+sudo chmod -R 775 /var/www/stubbornstumps/storage
+```
+
+Optional fallback: you can still set a Formspree endpoint in `assets/js/site.js` as backup.
 
 ## Local Preview
 
@@ -50,7 +77,8 @@ Update this JSON file to improve local suggestion quality without changing JavaS
 ## Launch Checklist
 
 - Replace placeholder phone number with real number across all pages
-- Set real Formspree endpoint in `assets/js/site.js`
+- Confirm PHP + SQLite are installed on the server
+- Confirm `storage/` directory is writable by Nginx/PHP user
 - Replace placeholder gallery images in `assets/images/`
 - Validate `robots.txt` and `sitemap.xml` after major content updates
 - Run server sync: `bash /root/sync-site.sh --dir /var/www/stubbornstumps`

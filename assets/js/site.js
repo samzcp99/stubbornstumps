@@ -1,4 +1,9 @@
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/your-form-id";
+const LOCAL_QUOTE_ENDPOINT = "api/quote.php";
+const FORMSPREE_ENDPOINT = "";
+
+function hasFormspreeFallback() {
+  return Boolean(FORMSPREE_ENDPOINT) && !FORMSPREE_ENDPOINT.includes("your-form-id");
+}
 
 async function handleQuoteSubmit(event) {
   event.preventDefault();
@@ -7,26 +12,40 @@ async function handleQuoteSubmit(event) {
   const status = document.getElementById("quote-status");
   const submitButton = document.getElementById("quote-submit");
 
-  if (!FORMSPREE_ENDPOINT || FORMSPREE_ENDPOINT.includes("your-form-id")) {
-    status.textContent = "Please set your real Formspree endpoint in assets/js/site.js.";
-    status.style.color = "#F97316";
-    return false;
-  }
-
   submitButton.disabled = true;
   status.textContent = "Submitting...";
   status.style.color = "#475569";
 
-  const formData = new FormData(form);
-
-  try {
-    const response = await fetch(FORMSPREE_ENDPOINT, {
+  const submitToEndpoint = async (endpointUrl) => {
+    const formData = new FormData(form);
+    const response = await fetch(endpointUrl, {
       method: "POST",
       body: formData,
       headers: { Accept: "application/json" },
     });
 
-    if (!response.ok) throw new Error("Submit failed");
+    let responseBody = null;
+    try {
+      responseBody = await response.json();
+    } catch {
+      responseBody = null;
+    }
+
+    return {
+      ok: response.ok && (!responseBody || responseBody.ok !== false),
+      message: responseBody && typeof responseBody.message === "string" ? responseBody.message : "",
+      status: response.status,
+    };
+  };
+
+  try {
+    let submitResult = await submitToEndpoint(LOCAL_QUOTE_ENDPOINT);
+    if (!submitResult.ok && hasFormspreeFallback()) {
+      submitResult = await submitToEndpoint(FORMSPREE_ENDPOINT);
+    }
+    if (!submitResult.ok) {
+      throw new Error(submitResult.message || "Submit failed");
+    }
 
     form.reset();
     status.textContent = "Thanks! Your quote request was sent successfully. Redirecting...";
@@ -36,7 +55,7 @@ async function handleQuoteSubmit(event) {
     }, 900);
     return true;
   } catch (error) {
-    status.textContent = "Unable to submit right now. Please try again or call us.";
+    status.textContent = error instanceof Error && error.message ? error.message : "Unable to submit right now. Please try again or call us.";
     status.style.color = "#F97316";
     return false;
   } finally {
@@ -49,6 +68,7 @@ const quoteAddress = document.getElementById("quote-address");
 const quoteSuggestions = document.getElementById("quote-suggestions");
 const quoteSuburb = document.getElementById("quote-suburb");
 const quoteTown = document.getElementById("quote-town");
+const quoteStartedAt = document.getElementById("quote-started-at");
 let quoteAutocompleteTimer = null;
 let quoteAutocompleteResults = [];
 let quoteActiveSuggestionIndex = -1;
@@ -65,6 +85,10 @@ let southlandAddressHints = {
   localities: [],
   streetHints: [],
 };
+
+if (quoteStartedAt) {
+  quoteStartedAt.value = String(Date.now());
+}
 
 function toMegabytes(bytes) {
   return `${Math.round((bytes / (1024 * 1024)) * 10) / 10}MB`;
