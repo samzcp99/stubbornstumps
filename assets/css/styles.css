@@ -39,6 +39,7 @@ body {
   justify-content: space-between;
   padding: 14px 0;
   gap: 16px;
+  position: relative;
 }
 
 .logo {
@@ -53,7 +54,26 @@ body {
 
 .nav {
   display: none;
-  gap: 16px;
+  gap: 8px;
+}
+
+.nav a {
+  text-decoration: none;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 9px 12px;
+  border-radius: 9px;
+  transition: background-color .2s ease, color .2s ease;
+}
+
+.nav a:hover {
+  background: #EEF2FF;
+  color: var(--text);
+}
+
+.nav a.active {
+  background: #E2E8F0;
+  color: var(--text);
 }
 
 .menu-toggle {
@@ -69,12 +89,29 @@ body {
   padding: 0 10px;
 }
 
+.menu-toggle:hover {
+  background: #F1F5F9;
+}
+
 .menu-toggle span {
   display: block;
   height: 2px;
   width: 100%;
   background: var(--text);
   border-radius: 2px;
+  transition: transform .2s ease, opacity .2s ease;
+}
+
+.site-header.nav-open .menu-toggle span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.site-header.nav-open .menu-toggle span:nth-child(2) {
+  opacity: 0;
+}
+
+.site-header.nav-open .menu-toggle span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 .site-header.nav-open .header-inner {
@@ -84,14 +121,20 @@ body {
 .site-header.nav-open .nav {
   display: grid;
   width: 100%;
-  gap: 10px;
-  padding: 8px 0 4px;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
 }
 
-.nav a {
-  text-decoration: none;
-  color: var(--muted);
-  font-weight: 500;
+.site-header.nav-open .nav a {
+  background: #F8FAFC;
+}
+
+.header-inner > .btn-accent {
+  display: none;
 }
 
 .btn {
@@ -276,7 +319,15 @@ small, .muted {
 @media (min-width: 768px) {
   .logo img { height: 40px; }
   .menu-toggle { display: none; }
-  .nav { display: flex; }
+  .header-inner > .btn-accent { display: inline-block; }
+  .nav {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+  }
   .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .footer-inner { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .footer-bottom { padding-bottom: 20px; }

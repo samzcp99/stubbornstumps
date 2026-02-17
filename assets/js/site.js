@@ -266,3 +266,17 @@ if (menuToggle && siteHeader && siteNav) {
   });
 }
 
+if (siteNav) {
+  const currentPath = window.location.pathname.split("/").pop() || "index.html";
+  const normalizedCurrent = currentPath === "" ? "index.html" : currentPath;
+
+  siteNav.querySelectorAll("a").forEach((navLink) => {
+    const href = navLink.getAttribute("href") || "";
+    const normalizedHref = href === "./" || href === "/" ? "index.html" : href;
+    if (normalizedHref === normalizedCurrent) {
+      navLink.classList.add("active");
+      navLink.setAttribute("aria-current", "page");
+    }
+  });
+}
+
