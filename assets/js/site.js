@@ -1,8 +1,50 @@
 const LOCAL_QUOTE_ENDPOINT = "api/quote.php";
 const FORMSPREE_ENDPOINT = "";
+const QUOTE_MAIL_RECIPIENT = "stubbornstumps90@gmail.com";
 
 function hasFormspreeFallback() {
   return Boolean(FORMSPREE_ENDPOINT) && !FORMSPREE_ENDPOINT.includes("your-form-id");
+}
+
+function openMailAppForQuote(form) {
+  const formData = new FormData(form);
+
+  const name = (formData.get("name") || "").toString().trim();
+  const phone = (formData.get("phone") || "").toString().trim();
+  const email = (formData.get("email") || "").toString().trim();
+  const region = (formData.get("region") || "").toString().trim();
+  const address = (formData.get("address") || "").toString().trim();
+  const suburb = (formData.get("suburb") || "").toString().trim();
+  const town = (formData.get("town") || "").toString().trim();
+  const description = (formData.get("description") || "").toString().trim();
+
+  const subject = `Quote Request - ${name || "New Customer"}`;
+  const body = [
+    "New quote request:",
+    "",
+    `Name: ${name}`,
+    `Phone: ${phone}`,
+    `Email: ${email}`,
+    `Region: ${region}`,
+    `Address: ${address}`,
+    `Suburb: ${suburb}`,
+    `Town / City: ${town}`,
+    "",
+    "Description:",
+    description,
+  ].join("\n");
+
+  const mailto = `mailto:${QUOTE_MAIL_RECIPIENT}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  const fallbackLink = document.createElement("a");
+  fallbackLink.href = mailto;
+  fallbackLink.style.display = "none";
+  document.body.appendChild(fallbackLink);
+  fallbackLink.click();
+  document.body.removeChild(fallbackLink);
+
+  window.location.assign(mailto);
+  return mailto;
 }
 
 async function handleQuoteSubmit(event) {
@@ -101,9 +143,6 @@ const quoteAutocompleteCache = new Map();
 const quoteAutocompleteMinChars = 2;
 const quoteAutocompleteDebounceMs = 130;
 const quoteRemoteMinChars = 3;
-const quoteMaxPhotoCount = 8;
-const quoteMaxPhotoBytesPerFile = 10 * 1024 * 1024;
-const quoteMaxPhotoBytesTotal = 30 * 1024 * 1024;
 let quoteAutocompleteRequestToken = 0;
 let southlandAddressHints = {
   localities: [],
@@ -113,10 +152,6 @@ let quoteSuggestionTouchSelecting = false;
 
 if (quoteStartedAt) {
   quoteStartedAt.value = String(Date.now());
-}
-
-function toMegabytes(bytes) {
-  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10}MB`;
 }
 
 async function loadSouthlandAddressHints() {
@@ -540,8 +575,8 @@ if (quoteUseLocationButton && quoteAddress && quoteSuburb && quoteTown) {
           const suburb = addressInfo.suburb || addressInfo.neighbourhood || addressInfo.hamlet || addressInfo.village || "";
           const town = addressInfo.city || addressInfo.town || addressInfo.village || addressInfo.county || "";
 
-          if (!addressDisplay || !suburb || !town) {
-            throw new Error("We found your location but could not fill a complete Southland address.");
+          if (!addressDisplay) {
+            throw new Error("We found your location but could not detect a usable address.");
           }
 
           applyAddressSelection(addressDisplay, {
@@ -587,57 +622,30 @@ if (quoteUseLocationButton && quoteAddress && quoteSuburb && quoteTown) {
 if (quoteForm) {
   quoteForm.addEventListener("submit", async (event) => {
     const status = document.getElementById("quote-status");
-    const photoInput = quoteForm.querySelector('input[name="photos"]');
 
-    if (quoteSuburb && quoteTown && (!quoteSuburb.value || !quoteTown.value)) {
-      event.preventDefault();
+    event.preventDefault();
+
+    if (status) {
+      status.textContent = "Opening your email app...";
+      status.style.color = "#475569";
+    }
+
+    const mailto = openMailAppForQuote(quoteForm);
+
+    window.setTimeout(() => {
+      if (quoteSuburb && quoteTown && quoteAddress) {
+        quoteSuburb.value = "";
+        quoteTown.value = "";
+        quoteAddress.value = "";
+        closeAddressSuggestions();
+      }
       if (status) {
-        status.textContent = "Please select an address suggestion before submitting.";
-        status.style.color = "#F97316";
+        status.innerHTML = `Email draft requested. If it did not open automatically, <a href="${mailto}">tap here to open it</a>.`;
+        status.style.color = "#1F7A63";
       }
-      return;
-    }
+    }, 400);
 
-    if (photoInput && photoInput.files && photoInput.files.length > 0) {
-      const selectedFiles = Array.from(photoInput.files);
-
-      if (selectedFiles.length > quoteMaxPhotoCount) {
-        event.preventDefault();
-        if (status) {
-          status.textContent = `Please upload up to ${quoteMaxPhotoCount} photos.`;
-          status.style.color = "#F97316";
-        }
-        return;
-      }
-
-      const oversizedFile = selectedFiles.find((file) => file.size > quoteMaxPhotoBytesPerFile);
-      if (oversizedFile) {
-        event.preventDefault();
-        if (status) {
-          status.textContent = `Each photo must be under ${toMegabytes(quoteMaxPhotoBytesPerFile)}.`;
-          status.style.color = "#F97316";
-        }
-        return;
-      }
-
-      const totalSize = selectedFiles.reduce((accumulator, file) => accumulator + file.size, 0);
-      if (totalSize > quoteMaxPhotoBytesTotal) {
-        event.preventDefault();
-        if (status) {
-          status.textContent = `Total upload size must be under ${toMegabytes(quoteMaxPhotoBytesTotal)}.`;
-          status.style.color = "#F97316";
-        }
-        return;
-      }
-    }
-
-    const isSuccess = await handleQuoteSubmit(event);
-    if (isSuccess && quoteSuburb && quoteTown && quoteAddress) {
-      quoteSuburb.value = "";
-      quoteTown.value = "";
-      quoteAddress.value = "";
-      closeAddressSuggestions();
-    }
+    return;
   });
 }
 
