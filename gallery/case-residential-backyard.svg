@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Residential Backyard Stump</title>
+  <desc id="desc">Illustration of stump grinding in a residential backyard.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#CFE9FF"/>
+      <stop offset="100%" stop-color="#F8FCFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#sky)"/>
+  <rect y="470" width="1200" height="330" fill="#8BCB7A"/>
+  <rect x="80" y="250" width="360" height="260" rx="14" fill="#F3E6D6" stroke="#D8C7B1"/>
+  <polygon points="70,260 260,150 450,260" fill="#D97652"/>
+  <rect x="210" y="370" width="90" height="140" fill="#FFFFFF"/>
+  <circle cx="860" cy="315" r="90" fill="#77B255"/>
+  <rect x="842" y="315" width="36" height="130" fill="#6B4E2E"/>
+  <ellipse cx="600" cy="560" rx="130" ry="40" fill="#8A5A2B"/>
+  <ellipse cx="600" cy="550" rx="95" ry="26" fill="#A46B34"/>
+  <rect x="0" y="0" width="1200" height="100" fill="#0F172A" opacity="0.72"/>
+  <text x="52" y="64" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700" fill="#ffffff">Residential Backyard Stump</text>
+</svg>

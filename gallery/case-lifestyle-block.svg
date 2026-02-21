@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Multi-Stump Lifestyle Block</title>
+  <desc id="desc">Illustration of multiple stumps removed on a lifestyle block.</desc>
+  <rect width="1200" height="800" fill="#D9F2FF"/>
+  <rect y="440" width="1200" height="360" fill="#A7D889"/>
+  <circle cx="180" cy="180" r="65" fill="#FFF5C2"/>
+  <ellipse cx="260" cy="560" rx="85" ry="30" fill="#8A5A2B"/>
+  <ellipse cx="460" cy="590" rx="70" ry="24" fill="#8A5A2B"/>
+  <ellipse cx="650" cy="550" rx="95" ry="34" fill="#8A5A2B"/>
+  <ellipse cx="860" cy="585" rx="75" ry="27" fill="#8A5A2B"/>
+  <path d="M60 500 C 220 430, 310 470, 470 430 C 620 390, 760 440, 930 410" stroke="#6EA867" stroke-width="10" fill="none"/>
+  <rect x="0" y="0" width="1200" height="100" fill="#0F172A" opacity="0.72"/>
+  <text x="52" y="64" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700" fill="#ffffff">Multi-Stump Lifestyle Block</text>
+</svg>

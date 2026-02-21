@@ -87,9 +87,11 @@ async function handleQuoteSubmit(event) {
 
 const quoteForm = document.getElementById("quote-form");
 const quoteAddress = document.getElementById("quote-address");
+const quoteUseLocationButton = document.getElementById("quote-use-location");
 const quoteSuggestions = document.getElementById("quote-suggestions");
 const quoteSuburb = document.getElementById("quote-suburb");
 const quoteTown = document.getElementById("quote-town");
+const quoteDescription = quoteForm ? quoteForm.querySelector('textarea[name="description"]') : null;
 const quoteStartedAt = document.getElementById("quote-started-at");
 let quoteAutocompleteTimer = null;
 let quoteAutocompleteResults = [];
@@ -97,8 +99,8 @@ let quoteActiveSuggestionIndex = -1;
 let quoteAutocompleteAbortController = null;
 const quoteAutocompleteCache = new Map();
 const quoteAutocompleteMinChars = 2;
-const quoteAutocompleteDebounceMs = 220;
-const quoteRemoteMinChars = 4;
+const quoteAutocompleteDebounceMs = 130;
+const quoteRemoteMinChars = 3;
 const quoteMaxPhotoCount = 8;
 const quoteMaxPhotoBytesPerFile = 10 * 1024 * 1024;
 const quoteMaxPhotoBytesTotal = 30 * 1024 * 1024;
@@ -107,6 +109,7 @@ let southlandAddressHints = {
   localities: [],
   streetHints: [],
 };
+let quoteSuggestionTouchSelecting = false;
 
 if (quoteStartedAt) {
   quoteStartedAt.value = String(Date.now());
@@ -219,6 +222,78 @@ function applyAddressSelection(addressDisplay, addressData) {
   closeAddressSuggestions();
 }
 
+async function reverseGeocodeCoordinates(latitude, longitude) {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    throw new Error("Invalid device location.");
+  }
+
+  const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&accept-language=en-NZ&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+  const response = await fetch(endpoint, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Unable to look up your address from location.");
+  }
+
+  const result = await response.json();
+  if (!result || typeof result !== "object") {
+    throw new Error("No address found for your location.");
+  }
+
+  return result;
+}
+
+function buildAddressDisplayFromReverse(result) {
+  const address = (result && result.address) || {};
+  const streetLine = [address.house_number, address.road].filter(Boolean).join(" ").trim();
+  const suburb = address.suburb || address.neighbourhood || address.hamlet || address.village || "";
+  const town = address.city || address.town || address.village || address.county || "";
+
+  const compactLine = [streetLine, suburb, town, "Southland", "New Zealand"].filter(Boolean).join(", ");
+  if (compactLine) {
+    return compactLine;
+  }
+
+  return result.display_name || "";
+}
+
+function getGeolocationErrorMessage(error) {
+  if (!error) {
+    return "Could not get your location. Please type your address manually.";
+  }
+
+  if (error.code === 1) {
+    return "Location permission was denied. Please allow location access or type your address manually.";
+  }
+
+  if (error.code === 2) {
+    return "Location is unavailable right now. Please try again or type your address manually.";
+  }
+
+  if (error.code === 3) {
+    return "Location request timed out. Please try again or type your address manually.";
+  }
+
+  return "Could not get your location. Please type your address manually.";
+}
+
+function moveToQuoteDescriptionField() {
+  if (!quoteDescription) return;
+
+  try {
+    quoteDescription.focus({ preventScroll: true });
+  } catch {
+    quoteDescription.focus();
+  }
+
+  quoteDescription.scrollIntoView({ block: "center", behavior: "auto" });
+}
+
 function renderAddressSuggestions(results) {
   if (!quoteSuggestions) return;
 
@@ -237,6 +312,14 @@ function renderAddressSuggestions(results) {
     button.setAttribute("data-index", String(index));
     button.addEventListener("mouseenter", () => {
       setActiveSuggestion(index);
+    });
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      quoteSuggestionTouchSelecting = true;
+      applyAddressSelection(result.display_name, result.address || {});
+      window.setTimeout(() => {
+        quoteSuggestionTouchSelecting = false;
+      }, 0);
     });
     button.addEventListener("click", () => {
       applyAddressSelection(result.display_name, result.address || {});
@@ -410,9 +493,94 @@ if (quoteAddress && quoteSuburb && quoteTown && quoteSuggestions) {
   });
 
   document.addEventListener("click", (event) => {
+    if (quoteSuggestionTouchSelecting) {
+      return;
+    }
     if (!quoteSuggestions.contains(event.target) && event.target !== quoteAddress) {
       closeAddressSuggestions();
     }
+  });
+}
+
+if (quoteUseLocationButton && quoteAddress && quoteSuburb && quoteTown) {
+  quoteUseLocationButton.addEventListener("click", () => {
+    const status = document.getElementById("quote-status");
+
+    if (!window.isSecureContext) {
+      if (status) {
+        status.textContent = "Location needs HTTPS or localhost. Please type your address manually.";
+        status.style.color = "#F97316";
+      }
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      if (status) {
+        status.textContent = "This browser does not support location access. Please type your address manually.";
+        status.style.color = "#F97316";
+      }
+      return;
+    }
+
+    quoteUseLocationButton.disabled = true;
+    if (status) {
+      status.textContent = "Getting your location...";
+      status.style.color = "#475569";
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const latitude = position && position.coords ? position.coords.latitude : null;
+          const longitude = position && position.coords ? position.coords.longitude : null;
+          const reverseResult = await reverseGeocodeCoordinates(latitude, longitude);
+          const addressInfo = reverseResult.address || {};
+          const addressDisplay = buildAddressDisplayFromReverse(reverseResult);
+
+          const suburb = addressInfo.suburb || addressInfo.neighbourhood || addressInfo.hamlet || addressInfo.village || "";
+          const town = addressInfo.city || addressInfo.town || addressInfo.village || addressInfo.county || "";
+
+          if (!addressDisplay || !suburb || !town) {
+            throw new Error("We found your location but could not fill a complete Southland address.");
+          }
+
+          applyAddressSelection(addressDisplay, {
+            ...addressInfo,
+            suburb,
+            town,
+            city: town,
+          });
+
+          if (status) {
+            status.textContent = "Address filled from your current location.";
+            status.style.color = "#1F7A63";
+          }
+
+          moveToQuoteDescriptionField();
+        } catch (error) {
+          if (status) {
+            status.textContent = error instanceof Error && error.message
+              ? error.message
+              : "Could not fill address from current location. Please type and choose a suggestion.";
+            status.style.color = "#F97316";
+          }
+        } finally {
+          quoteUseLocationButton.disabled = false;
+        }
+      },
+      (error) => {
+        if (status) {
+          status.textContent = getGeolocationErrorMessage(error);
+          status.style.color = "#F97316";
+        }
+        quoteUseLocationButton.disabled = false;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 300000,
+      },
+    );
   });
 }
 
